@@ -70,8 +70,39 @@
     <div class="container">
         <form id="downloadForm">
             <div class="input-group">
-                <input type="url" id="urlInput" placeholder="এখানে ভিডিও বা অডিও লিংক পেস্ট করুন..." required>
+                <input type="url" id="urlInput" placeholder="ভিডিও বা প্লেলিস্টের লিংক পেস্ট করুন..." required>
                 <button type="submit" id="fetchBtn">তথ্য খুঁজুন</button>
+            </div>
+            
+            <!-- Settings Toggles -->
+            <div style="display: flex; gap: 15px; margin-bottom: 10px;">
+                <label style="font-size: 0.85rem; color: var(--text-main); font-weight: 600; cursor: pointer;">
+                    <input type="checkbox" id="isPlaylistMode"> 📑 প্লেলিস্ট মোড
+                </label>
+                <label style="font-size: 0.85rem; color: var(--primary); font-weight: 600; cursor: pointer;">
+                    <input type="checkbox" id="showAdvanced"> ⚙️ অ্যাডভান্সড সেটিংস
+                </label>
+            </div>
+
+            <!-- Advanced Settings Panel (Hidden by default) -->
+            <div id="advancedSettings" class="hidden" style="background: #fdfdfd; padding: 15px; border-radius: 8px; border: 1px solid var(--border-light); text-align: left; margin-bottom: 15px;">
+                
+                <!-- 1. Secure Cookie Manager -->
+                <div style="margin-bottom: 15px;">
+                    <label style="font-size: 0.85rem; font-weight: bold; color: var(--text-main);">🔐 প্রাইভেট ভিডিও কুকি (Netscape format):</label>
+                    <textarea id="cookieInput" rows="3" placeholder="প্রাইভেট ভিডিও নামাতে আপনার ব্রাউজারের কুকিজ এখানে পেস্ট করুন..." style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid var(--border-light); font-size: 0.8rem;"></textarea>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;">* কুকি ফাইল সার্ভারে সেভ হবে না, ডাউনলোড শেষে অটোমেটিক মুছে যাবে।</p>
+                </div>
+
+                <!-- 2. Cloud Pipe (Google Drive) -->
+                <div style="border-top: 1px solid var(--border-light); padding-top: 10px;">
+                    <label style="font-size: 0.85rem; font-weight: bold; color: var(--text-main);">☁️ ক্লাউড সেভ (Cloud Pipe):</label>
+                    <div style="margin-top: 5px;">
+                        <label style="font-size: 0.85rem; cursor: pointer;">
+                            <input type="checkbox" id="saveToDrive"> 📥 পিসিতে নয়, সরাসরি Google Drive-এ সেভ করুন
+                        </label>
+                    </div>
+                </div>
             </div>
         </form>
 
@@ -128,6 +159,27 @@
                 <p id="progressText" class="progress-text">প্রস্তুত হচ্ছে...</p>
             </div>
         </div>
+
+        <!-- প্লেলিস্ট রেজাল্ট সেকশন -->
+        <div id="playlistContainer" class="hidden result-card" style="text-align: left;">
+            <h3 id="playlistTitle" style="color: var(--primary); margin-bottom: 5px;"></h3>
+            <p id="playlistCount" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;"></p>
+            
+            <div style="max-height: 300px; overflow-y: auto; background: #fff; border: 1px solid var(--border-light); border-radius: 8px; padding: 10px; margin-bottom: 15px;">
+                <ul id="playlistItems" style="list-style: none; font-size: 0.9rem;">
+                    <!-- ভিডিওর লিস্ট এখানে আসবে -->
+                </ul>
+            </div>
+            
+            <!-- কোয়ালিটি সিলেক্ট (প্লেলিস্টের সবার জন্য) -->
+            <select id="playlistFormatSelect" style="margin-bottom: 15px;">
+                <option value="bestvideo[height<=1080]+bestaudio/best" data-ext="mp4">🎬 1080p / Best MP4</option>
+                <option value="bestvideo[height<=720]+bestaudio/best" data-ext="mp4">🎬 720p MP4</option>
+                <option value="bestaudio" data-ext="mp3">🎵 Best MP3 Audio</option>
+            </select>
+
+            <button id="downloadPlaylistBtn" style="width: 100%;">⬇ নির্বাচিত ভিডিওগুলো ডাউনলোড করুন</button>
+        </div>
     </div>
 
     <!-- Zero-Storage History Panel -->
@@ -138,6 +190,17 @@
         </ul>
     </div>
 
+    <!-- UI Toggle Script for Advanced Settings -->
+    <script>
+        document.getElementById('showAdvanced').addEventListener('change', function() {
+            const advancedPanel = document.getElementById('advancedSettings');
+            if(this.checked) {
+                advancedPanel.classList.remove('hidden');
+            } else {
+                advancedPanel.classList.add('hidden');
+            }
+        });
+    </script>
     <script src="/app.js"></script>
 </body>
 </html>

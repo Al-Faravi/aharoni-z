@@ -17,7 +17,7 @@ const secondsToHMS = (totalSeconds) => {
         .join(":");
 };
 
-// ফিক্স: লাইভ প্রোগ্রেস ট্র্যাক করার জন্য ক্লায়েন্টদের স্টোর করার অবজেক্ট
+// লাইভ প্রোগ্রেস ট্র্যাক করার জন্য ক্লায়েন্টদের স্টোর করার অবজেক্ট
 const progressClients = {};
 
 const cleanUrl = (rawUrl) => {
@@ -34,13 +34,17 @@ const cleanUrl = (rawUrl) => {
 };
 
 const getVideoInfo = async (req, res) => {
-    const { url } = req.body;
+    const { url, cookies } = req.body; // কুকি রিসিভ করা হলো
     if (!url) return res.status(400).json({ error: 'URL দেওয়া হয়নি!' });
 
     const safeUrl = cleanUrl(url);
     console.log(`\n🔍 ভিডিওর তথ্য খোঁজা হচ্ছে: ${safeUrl}`);
 
-    const ytDlp = spawn('yt-dlp', [
+    // কুকি ফাইল ম্যানেজমেন্ট
+    let cookiePath = null;
+    let cookieId = null;
+
+    let ytDlpArgs = [
         '--no-warnings', 
         '--no-playlist', 
         '--force-ipv4',            
@@ -48,7 +52,18 @@ const getVideoInfo = async (req, res) => {
         '--no-write-comments',
         '-j', 
         safeUrl
-    ]);
+    ];
+
+    // যদি ইউজার কুকি দিয়ে থাকে
+    if (cookies) {
+        cookieId = `cookie_${Date.now()}`;
+        cookiePath = path.join(tempDir, `${cookieId}.txt`);
+        fs.writeFileSync(cookiePath, cookies); // কুকি ফাইলে লেখা হলো
+        ytDlpArgs.push('--cookies', cookiePath); // yt-dlp কে কুকি ফাইল ধরিয়ে দেওয়া হলো
+        console.log(`🔐 প্রাইভেট সেশন কুকি ব্যবহার করা হচ্ছে...`);
+    }
+
+    const ytDlp = spawn('yt-dlp', ytDlpArgs);
     
     let output = '';
     let errorOutput = '';
@@ -57,9 +72,15 @@ const getVideoInfo = async (req, res) => {
     ytDlp.stderr.on('data', (data) => { errorOutput += data.toString(); });
 
     ytDlp.on('close', (code) => {
+        // প্রসেস শেষে ইনফো ফেচের কুকি ফাইলটি মুছে ফেলা (নিরাপত্তার জন্য)
+        if (cookiePath && fs.existsSync(cookiePath)) {
+            // ইউজার ডাউনলোড করতে চাইলে কুকিটি ডাউনলোডের জন্য রেখে দেওয়া ভালো।
+            // তাই এখানে ডিলিট না করে, আমরা cookieId টা ফ্রন্টএন্ডে পাঠিয়ে দিচ্ছি।
+        }
+
         if (code !== 0) {
             console.log("❌ [Info Fetch Error]:", errorOutput);
-            return res.status(500).json({ error: 'ভিডিওর তথ্য পাওয়া যায়নি।' });
+            return res.status(500).json({ error: 'ভিডিওর তথ্য পাওয়া যায়নি। প্রাইভেট ভিডিও হলে সঠিক কুকি দিন।' });
         }
         try {
             console.log(`✅ তথ্য সফলভাবে পাওয়া গেছে!`);
@@ -90,14 +111,20 @@ const getVideoInfo = async (req, res) => {
             }
             formats.push({ type: 'audio', format_id: 'bestaudio', resolution: 'High Quality Audio', ext: 'mp3' });
 
-            res.json({ title: info.title || 'Aharoni_Z_Video', thumbnail: info.thumbnail, duration: info.duration_string || 'Unknown', formats: formats });
+            res.json({ 
+                title: info.title || 'Aharoni_Z_Video', 
+                thumbnail: info.thumbnail, 
+                duration: info.duration_string || 'Unknown', 
+                formats: formats,
+                cookieId: cookieId // নতুন: ফ্রন্টএন্ডে ID পাঠানো হলো
+            });
         } catch (e) {
             res.status(500).json({ error: 'ডেটা পার্স করতে সমস্যা হয়েছে।' });
         }
     });
 };
 
-// নতুন ফাংশন: ফ্রন্টএন্ডে লাইভ প্রোগ্রেস পাঠানোর জন্য (SSE)
+// ফ্রন্টএন্ডে লাইভ প্রোগ্রেস পাঠানোর জন্য (SSE)
 const progressStream = (req, res) => {
     const clientId = req.query.id;
     res.setHeader('Content-Type', 'text/event-stream');
@@ -115,8 +142,8 @@ const progressStream = (req, res) => {
 const streamMedia = (req, res) => {
     req.setTimeout(0); 
 
-    // start এবং end টাইম রিসিভ করা হলো (যদি ইউজার দিয়ে থাকে)
-    const { url, format, ext, title, clientId, startTime, endTime } = req.query;
+    // start, end টাইম এবং cookieId রিসিভ করা হলো
+    const { url, format, ext, title, clientId, startTime, endTime, cookieId } = req.query;
     if (!url || !format) return res.status(400).send('URL এবং Format ID প্রয়োজন!');
 
     const safeUrl = cleanUrl(url);
@@ -125,6 +152,16 @@ const streamMedia = (req, res) => {
     const filePath = path.join(tempDir, tempFileName);
 
     let ytDlpArgs = ['--newline', '--no-playlist'];
+
+    // নতুন: কুকি ফাইল ব্যবহার
+    let cookiePath = null;
+    if (cookieId) {
+        cookiePath = path.join(tempDir, `${cookieId}.txt`);
+        if (fs.existsSync(cookiePath)) {
+            ytDlpArgs.push('--cookies', cookiePath);
+            console.log(`🔐 ডাউনলোডের জন্য কুকি ব্যবহার করা হচ্ছে...`);
+        }
+    }
 
     // ফ্রন্টএন্ড থেকে যদি সেকেন্ডে (যেমন: 45, 120) সময় আসে তবে তা ফরম্যাট করা
     if (startTime !== undefined && endTime !== undefined && startTime !== '' && endTime !== '') {
@@ -166,9 +203,18 @@ const streamMedia = (req, res) => {
             progressClients[clientId].write(`data: DONE\n\n`);
         }
 
+        // নতুন: ডাউনলোড শেষে কুকি ফাইল মুছে ফেলা (স্টোরেজ বাঁচানো ও সিকিউরিটি)
+        if (cookiePath && fs.existsSync(cookiePath)) {
+            try {
+                fs.unlinkSync(cookiePath);
+                console.log(`🗑️ কুকি ফাইল মুছে ফেলা হয়েছে।`);
+            } catch (err) {
+                console.error('কুকি ফাইল মুছতে সমস্যা:', err);
+            }
+        }
+
         if (code === 0 && fs.existsSync(filePath)) {
             console.log(`✅ প্রসেসিং সফল! ব্রাউজারে ফাইল পাঠানো হচ্ছে...`);
-            // যদি ট্রিম করা হয়, তবে নামের শেষে _trimmed যুক্ত হবে
             const finalName = (startTime !== undefined && endTime !== undefined && startTime !== '' && endTime !== '') 
                               ? `${safeTitle}_trimmed.${ext}` 
                               : `${safeTitle}.${ext}`;
@@ -185,4 +231,43 @@ const streamMedia = (req, res) => {
     });
 };
 
-module.exports = { getVideoInfo, streamMedia, progressStream };
+const getPlaylistInfo = (req, res) => {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ error: 'URL দেওয়া হয়নি!' });
+
+    console.log(`\n📑 প্লেলিস্টের তথ্য খোঁজা হচ্ছে: ${url}`);
+
+    const ytDlp = spawn('yt-dlp', ['--flat-playlist', '-J', url]);
+    
+    let output = '';
+    ytDlp.stdout.on('data', (data) => { output += data.toString(); });
+
+    ytDlp.on('close', (code) => {
+        if (code !== 0) {
+            return res.status(500).json({ error: 'প্লেলিস্টের তথ্য পাওয়া যায়নি।' });
+        }
+        try {
+            const info = JSON.parse(output);
+            if (!info.entries || info.entries.length === 0) {
+                return res.status(404).json({ error: 'প্লেলিস্টে কোনো ভিডিও পাওয়া যায়নি।' });
+            }
+
+            const videos = info.entries.map((entry, index) => ({
+                index: index + 1,
+                title: entry.title,
+                url: entry.url,
+                duration: entry.duration ? (entry.duration / 60).toFixed(2) + ' Min' : 'N/A'
+            }));
+
+            res.json({
+                playlistTitle: info.title || 'Unknown Playlist',
+                totalVideos: videos.length,
+                videos: videos
+            });
+        } catch (e) {
+            res.status(500).json({ error: 'ডেটা পার্স করতে সমস্যা হয়েছে।' });
+        }
+    });
+};
+
+module.exports = { getVideoInfo, streamMedia, progressStream, getPlaylistInfo };

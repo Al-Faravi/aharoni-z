@@ -13,11 +13,14 @@ app.use(express.json());
 const publicPath = path.join(__dirname, '../public');
 app.use(express.static(publicPath));
 
-// ইমপোর্টে progressStream যুক্ত করুন
-const { getVideoInfo, streamMedia, progressStream } = require('./controllers/downloadLogic');
+// ইমপোর্টে getPlaylistInfo যুক্ত করা হলো
+const { getVideoInfo, streamMedia, progressStream, getPlaylistInfo } = require('./controllers/downloadLogic');
 
-// আপনার রাউটগুলোর সাথে এটি যুক্ত করে দিন:
+// আপনার রাউটগুলো
 app.get('/api/progress', progressStream);
+
+// নতুন প্লেলিস্ট API রাউট
+app.post('/api/playlist', getPlaylistInfo);
 
 // Basic API Route Test
 app.get('/api/test', (req, res) => {
