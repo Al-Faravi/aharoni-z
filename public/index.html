@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aharoni Z | Advanced Media Downloader</title>
+    <!-- Z Icon for Favicon -->
+    <link rel="icon" type="image/png" href="/icons/z%20icon.png">
+    <link rel="manifest" href="/manifest.json">
+    <style>
+        :root {
+            --bg-color: #f7f5f0; /* Creamy White / Soft Off-white */
+            --card-bg: #ffffff;  /* Pure White */
+            --primary: #ff3366;
+            --primary-hover: #e62050;
+            --text-main: #2d3436; /* Dark Text */
+            --text-muted: #636e72; /* Gray Text */
+            --border-light: rgba(0, 0, 0, 0.08);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; }
+        
+        /* Logo Styling */
+        .brand-logo { max-width: 250px; height: auto; margin-bottom: 2rem; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.05)); }
+        
+        /* Main Container */
+        .container { background: var(--card-bg); width: 100%; max-width: 600px; padding: 2rem; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.06); border: 1px solid var(--border-light); }
+        
+        /* Input & Buttons */
+        .input-group { display: flex; gap: 10px; margin-bottom: 1.5rem; }
+        input[type="url"], input[type="text"] { flex: 1; padding: 14px 20px; border-radius: 8px; border: 1px solid var(--border-light); background: #fdfdfd; color: var(--text-main); font-size: 1rem; outline: none; transition: 0.3s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+        input[type="url"]:focus, input[type="text"]:focus { border-color: var(--primary); background: #ffffff; box-shadow: 0 0 0 3px rgba(255, 51, 102, 0.1); }
+        button { padding: 14px 24px; border: none; border-radius: 8px; background: var(--primary); color: white; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 10px rgba(255, 51, 102, 0.2); }
+        button:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(255, 51, 102, 0.3); }
+        button:disabled { background: #b2bec3; cursor: not-allowed; transform: none; box-shadow: none; color: #fff; }
+        
+        /* Results Section */
+        .hidden { display: none !important; }
+        .result-card { background: #f8f9fa; border: 1px solid var(--border-light); border-radius: 12px; padding: 15px; margin-top: 20px; text-align: center; }
+        .thumbnail-container { position: relative; margin-bottom: 15px; }
+        .thumbnail-container img { width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        
+        /* Thumbnail Download Button overlay */
+        .thumb-dl-btn { position: absolute; bottom: 10px; right: 10px; background: rgba(255,255,255,0.9); color: var(--primary); padding: 8px 12px; font-size: 0.85rem; font-weight: 600; border-radius: 6px; cursor: pointer; border: 1px solid var(--border-light); backdrop-filter: blur(4px); transition: 0.3s; }
+        .thumb-dl-btn:hover { background: var(--primary); color: white; }
+        
+        select { width: 100%; padding: 14px; margin: 15px 0; border-radius: 8px; background: #ffffff; color: var(--text-main); border: 1px solid var(--border-light); outline: none; font-size: 1rem; cursor: pointer; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+        select:focus { border-color: var(--primary); }
+        
+        /* Progress Bar */
+        .progress-container { width: 100%; height: 8px; background: #dfe6e9; border-radius: 4px; margin-top: 15px; overflow: hidden; }
+        .progress-bar { height: 100%; width: 0%; background: var(--primary); transition: width 0.3s ease; }
+        .progress-text { font-size: 0.85rem; color: var(--text-muted); margin-top: 5px; text-align: center; }
+
+        /* History Section */
+        .history-section { width: 100%; max-width: 600px; margin-top: 2rem; background: var(--card-bg); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border-light); box-shadow: 0 10px 40px rgba(0,0,0,0.04); }
+        .history-section h3 { margin-bottom: 15px; font-size: 1.1rem; color: var(--text-main); border-bottom: 1px solid var(--border-light); padding-bottom: 10px; }
+        .history-list { list-style: none; }
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 10px; border-bottom: 1px solid var(--border-light); font-size: 0.9rem; transition: 0.2s; }
+        .history-item:hover { background: #f8f9fa; border-radius: 6px; }
+        .history-item a { color: var(--primary); text-decoration: none; cursor: pointer; }
+        .badge { background: #ffeaa7; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; color: #d63031; font-weight: bold; border: 1px solid rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+
+    <!-- Aharoni Z Main Logo -->
+    <img src="/icons/ahoroni%20z%20logo.png" alt="Aharoni Z Logo" class="brand-logo">
+
+    <div class="container">
+        <form id="downloadForm">
+            <div class="input-group">
+                <input type="url" id="urlInput" placeholder="এখানে ভিডিও বা অডিও লিংক পেস্ট করুন..." required>
+                <button type="submit" id="fetchBtn">তথ্য খুঁজুন</button>
+            </div>
+        </form>
+
+        <div id="loader" class="hidden" style="text-align: center; color: var(--primary); margin: 20px 0; font-weight: 500;">
+            ⏳ সার্ভার থেকে তথ্য সংগ্রহ করা হচ্ছে...
+        </div>
+
+        <div id="resultContainer" class="hidden result-card">
+            <div class="thumbnail-container">
+                <img id="vidThumb" src="" alt="Thumbnail">
+                <button id="downloadThumbBtn" class="thumb-dl-btn">📸 Download HD Cover</button>
+            </div>
+            
+            <h3 id="vidTitle" style="font-size: 1.2rem; margin-bottom: 8px; text-align: left; color: var(--text-main);"></h3>
+            <p id="vidDuration" style="color: var(--text-muted); font-size: 0.9rem; text-align: left; font-weight: 500;"></p>
+            
+            <div id="downloadOptions">
+                <!-- Dropdown will be injected here -->
+            </div>
+
+            <!-- Interactive Video Trimming Section (Dual Slider) -->
+            <div id="trimSection" class="hidden" style="background: #fdfdfd; padding: 15px; border-radius: 12px; margin: 15px 0; text-align: left; border: 1px solid var(--border-light); box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <label style="font-size: 0.9rem; font-weight: 600; color: var(--text-main);">
+                        ✂️ ভিডিও ক্রপ / ট্রিম করুন:
+                    </label>
+                    <label style="font-size: 0.8rem; color: var(--primary); font-weight: 600; cursor: pointer;">
+                        <input type="checkbox" id="enableTrim" style="cursor: pointer;"> ট্রিম মোড অন করুন
+                    </label>
+                </div>
+
+                <div id="trimControls" style="opacity: 0.4; pointer-events: none; transition: 0.3s;">
+                    <div style="position: relative; margin: 20px 0 10px 0;">
+                        <!-- Custom Dual Range Slider (HTML Range) -->
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="range" id="rangeStart" min="0" max="100" value="0" step="1" style="flex: 1; accent-color: var(--primary); cursor: pointer;">
+                            <input type="range" id="rangeEnd" min="0" max="100" value="100" step="1" style="flex: 1; accent-color: var(--primary); cursor: pointer;">
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">
+                        <span id="startTimeDisplay">শুরু: 00:00:00</span>
+                        <span id="clipDurationDisplay" style="color: var(--primary); font-weight: bold;">দৈর্ঘ্য: পুরো ভিডিও</span>
+                        <span id="endTimeDisplay">শেষ: 00:00:00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div id="progressArea" class="hidden">
+                <div class="progress-container">
+                    <div id="progressBar" class="progress-bar"></div>
+                </div>
+                <p id="progressText" class="progress-text">প্রস্তুত হচ্ছে...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Zero-Storage History Panel -->
+    <div class="history-section" id="historySection">
+        <h3>🕒 সাম্প্রতিক ডাউনলোড সমূহ</h3>
+        <ul id="historyList" class="history-list">
+            <!-- History items will be injected here -->
+        </ul>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "name": "aharoni-z",
+  "version": "1.0.0",
+  "description": "Universal Video Downloader PWA with Chrome Extension",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js"
+  },
+  "keywords": [
+    "downloader",
+    "pwa",
+    "yt-dlp",
+    "extension"
+  ],
+  "author": "Md. Shakawat Hossain Faravi",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
