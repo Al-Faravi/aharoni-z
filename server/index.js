@@ -25,11 +25,15 @@ const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_U
 // Middleware
 // ==========================================
 // Vercel (Frontend) থেকে Hugging Face (Backend)-এ রিকোয়েস্ট অ্যালাউ করার জন্য CORS
+// ==========================================
+// Middleware
+// ==========================================
 app.use(cors({
-    origin: '*', 
-    methods: ['GET', 'POST', 'OPTIONS']
+    origin: ['https://aharoni-z.vercel.app', 'http://localhost:5000', 'http://localhost:3000'],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
 }));
-app.use(express.json());
 
 // Serve Static Files (Frontend PWA)
 const publicPath = path.join(__dirname, '../public');

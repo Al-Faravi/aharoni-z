@@ -9,7 +9,7 @@ function injectAharoniLogo() {
         // কন্টেইনার না পেলে বা আগে থেকেই লোগো থাকলে বাদ দাও
         if (!container || container.querySelector('.aharoni-z-video-btn')) return;
 
-        // ভিডিওর প্যারেন্টকে relative পজিশন দেওয়া, যাতে লোগোটি ফ্রেমের বাইরে না যায়
+        // ভিডিওর প্যারেন্টকে relative পজিশন দেওয়া, যাতে লোগোটি ফ্রেমের বাইরে না যায়
         if (window.getComputedStyle(container).position === 'static') {
             container.style.position = 'relative';
         }
@@ -17,7 +17,7 @@ function injectAharoniLogo() {
         // বাটন তৈরি
         const aharoniBtn = document.createElement("button");
         aharoniBtn.className = "aharoni-z-video-btn";
-        aharoniBtn.title = "Aharoni Z দিয়ে এই ভিডিওটি ডাউনলোড করুন";
+        aharoniBtn.title = "Aharoni Z দিয়ে এই ভিডিওটি ডাউনলোড করুন";
 
         // লোগো ইমেজ তৈরি
         const logoImg = document.createElement("img");
@@ -28,10 +28,10 @@ function injectAharoniLogo() {
         // ক্লিক ইভেন্ট
         aharoniBtn.addEventListener("click", (e) => {
             e.preventDefault();
-            e.stopPropagation(); // ক্লিক করলে যেন ভিডিও পজ (Pause) না হয়
+            e.stopPropagation(); // ক্লিক করলে যেন ভিডিও পজ (Pause) না হয়
 
             const videoUrl = window.location.href; 
-            const aharoniUrl = `http://localhost:5000/?videoUrl=${encodeURIComponent(videoUrl)}`;
+            const aharoniUrl = `https://aharoni-z.vercel.app/?videoUrl=${encodeURIComponent(videoUrl)}`;
             window.open(aharoniUrl, "_blank");
         });
 
@@ -40,5 +40,5 @@ function injectAharoniLogo() {
     });
 }
 
-// প্রতি ২ সেকেন্ড পর পর চেক করবে (কারন ইউটিউব/ফেসবুকে স্ক্রল করলে নতুন ভিডিও লোড হয়)
+// প্রতি ২ সেকেন্ড পর পর চেক করবে (কারন ইউটিউব/ফেসবুকে স্ক্রল করলে নতুন ভিডিও লোড হয়)
 setInterval(injectAharoniLogo, 2000);
