@@ -5,16 +5,18 @@ const cors = require('cors');
 const { google } = require('googleapis');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+// Hugging Face ডিফল্টভাবে 7860 পোর্ট ব্যবহার করে
+const PORT = process.env.PORT || 7860; 
 
 // ==========================================
 // Google Drive OAuth2 Setup
 // ==========================================
-// TODO: আপনার Google Console থেকে পাওয়া ID ও Secret এখানে বসান
-
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = "http://localhost:5000/auth/google/callback";
+
+// ডিপ্লয়মেন্টের পর .env ফাইলে আসল লিংক বসাতে হবে, আপাতত লোকাল লিংক থাকছে
+const REDIRECT_URI = process.env.REDIRECT_URI || "http://localhost:7860/auth/google/callback";
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5000";
 
 const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
 
@@ -22,7 +24,11 @@ const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_U
 // ==========================================
 // Middleware
 // ==========================================
-app.use(cors());
+// Vercel (Frontend) থেকে Hugging Face (Backend)-এ রিকোয়েস্ট অ্যালাউ করার জন্য CORS
+app.use(cors({
+    origin: '*', 
+    methods: ['GET', 'POST', 'OPTIONS']
+}));
 app.use(express.json());
 
 // Serve Static Files (Frontend PWA)
@@ -47,11 +53,11 @@ app.get('/auth/google/callback', async (req, res) => {
     const { code } = req.query;
     try {
         const { tokens } = await oauth2Client.getToken(code);
-        // টোকেনটি নিয়ে ফ্রন্টএন্ডে রিডাইরেক্ট করে দেওয়া হলো
-        res.redirect(`/?token=${tokens.access_token}`);
+        // টোকেনটি নিয়ে সরাসরি Vercel-এর ফ্রন্টএন্ড লিংকে রিডাইরেক্ট করে দেওয়া হলো
+        res.redirect(`${FRONTEND_URL}/?token=${tokens.access_token}`);
     } catch (e) {
-        console.error(e);
-        res.send("গুগল অথেনটিকেশন ফেইল করেছে!");
+        console.error('Google Auth Error:', e);
+        res.send("গুগল অথেনটিকেশন ফেইল করেছে! দয়া করে আবার চেষ্টা করুন।");
     }
 });
 
@@ -67,9 +73,9 @@ app.get('/api/progress', progressStream);
 // নতুন প্লেলিস্ট API রাউট
 app.post('/api/playlist', getPlaylistInfo);
 
-// Basic API Route Test
+// Basic API Route Test (Hugging Face এ সার্ভার ঠিক আছে কিনা চেক করার জন্য)
 app.get('/api/test', (req, res) => {
-    res.json({ message: "আহরণী Z ব্যাকএন্ড সফলভাবে রান করছে!" });
+    res.json({ message: "আহরণী Z ব্যাকএন্ড Hugging Face-এ সফলভাবে রান করছে! 🚀" });
 });
 
 // API Routes (External)

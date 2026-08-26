@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Aharoni Z - 1-Click Downloader",
+  "version": "1.0",
+  "description": "ভিডিও ফ্রেমের ভেতরে লোগোসহ ফ্লোটিং বাটন দিয়ে এক ক্লিকে ডাউনলোড করুন!",
+  "action": {
+    "default_title": "Download with Aharoni Z"
+  },
+  "permissions": ["activeTab"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.youtube.com/*",
+        "*://*.facebook.com/*"
+      ],
+      "css": ["style.css"],
+      "js": ["content.js"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["logo.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

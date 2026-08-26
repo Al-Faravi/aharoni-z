@@ -1,17 +1,57 @@
-// URL থেকে গুগল ড্রাইভের টোকেন রিসিভ করা (লগইনের পর)
+// ==========================================
+// API Server Setup (Backend URL)
+// ==========================================
+// Hugging Face-এ ডিপ্লয় করার পর এখানে আপনার Hugging Face এর লিংকটি বসাতে হবে।
+// আপাতত লোকাল টেস্টের জন্য localhost:7860 দেওয়া আছে।
+const API_BASE = "http://localhost:7860";
+
+// Google Login বাটনের লিংক ডাইনামিকভাবে ব্যাকএন্ডের দিকে পয়েন্ট করা
+const googleLoginBtn = document.getElementById('googleLoginBtn');
+if (googleLoginBtn) {
+    googleLoginBtn.href = `${API_BASE}/auth/google`;
+}
+
+// --- URL Parameters Handler (গুগল ড্রাইভ টোকেন ও এক্সটেনশন লিংক রিসিভ) ---
 const urlParams = new URLSearchParams(window.location.search);
+
+// ১. ড্রাইভ টোকেন রিসিভ করা (লগইনের পর)
 const tokenFromUrl = urlParams.get('token');
 if (tokenFromUrl) {
     localStorage.setItem('az_drive_token', tokenFromUrl);
-    window.history.replaceState({}, document.title, "/"); // URL ক্লিন করা
+    window.history.replaceState({}, document.title, window.location.pathname); // URL ক্লিন করা
 }
+
+// ২. এক্সটেনশন থেকে অটোমেটিক লিংক রিসিভ ও নোটিফিকেশন পারমিশন
+window.onload = () => {
+    const autoUrl = urlParams.get('videoUrl');
+    
+    if (autoUrl) {
+        const urlInput = document.getElementById('urlInput');
+        const fetchBtn = document.getElementById('fetchBtn');
+        
+        if (urlInput && fetchBtn) {
+            urlInput.value = autoUrl;
+            // একটু সময় নিয়ে অটোমেটিক ফেচ বাটনে ক্লিক করে দেওয়া
+            setTimeout(() => {
+                fetchBtn.click();
+            }, 500); 
+            
+            // URL ক্লিন করে দেওয়া যাতে রিলোড দিলে আবার ফেচ না হয়
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+
+    // --- ব্যাকগ্রাউন্ড নোটিফিকেশনের পারমিশন চাওয়া ---
+    if ("Notification" in window && Notification.permission !== "granted") {
+        Notification.requestPermission();
+    }
+};
 
 // ড্রাইভ কানেক্টেড কিনা চেক করা
 const driveToken = localStorage.getItem('az_drive_token');
 if (driveToken) {
-    const loginBtn = document.getElementById('googleLoginBtn');
     const msg = document.getElementById('driveConnectedMsg');
-    if(loginBtn) loginBtn.classList.add('hidden');
+    if(googleLoginBtn) googleLoginBtn.classList.add('hidden');
     if(msg) msg.classList.remove('hidden');
 }
 
@@ -60,7 +100,7 @@ document.getElementById('downloadForm').addEventListener('submit', async (e) => 
     const url = document.getElementById('urlInput').value;
     const isPlaylist = document.getElementById('isPlaylistMode').checked;
     
-    // নতুন: কুকি এবং ক্লাউড সেভের ভ্যালু নেওয়া
+    // কুকি এবং ক্লাউড সেভের ভ্যালু নেওয়া
     const cookiesText = document.getElementById('cookieInput').value.trim();
     const saveToDrive = document.getElementById('saveToDrive').checked;
     
@@ -76,8 +116,8 @@ document.getElementById('downloadForm').addEventListener('submit', async (e) => 
     fetchBtn.disabled = true;
     
     try {
-        // প্লেলিস্ট মোড হলে নতুন API তে কল যাবে, নাহলে সিঙ্গেল ভিডিও API তে
-        const endpoint = isPlaylist ? '/api/playlist' : '/api/info';
+        // API_BASE যুক্ত করে রাউট কল করা হচ্ছে
+        const endpoint = isPlaylist ? `${API_BASE}/api/playlist` : `${API_BASE}/api/info`;
         
         // fetch API এর body আপডেট করা (কুকি এবং ক্লাউড অপশন সহ)
         const response = await fetch(endpoint, {
@@ -123,10 +163,11 @@ document.getElementById('downloadForm').addEventListener('submit', async (e) => 
 
                     alert(`${selectedBoxes.length} টি ভিডিও ক্রমান্বয়ে ডাউনলোড শুরু হচ্ছে... ব্রাউজারের পপ-আপ অ্যালাও করুন!`);
                     
-                    // এক এক করে ভিডিও ডাউনলোডের রিকোয়েস্ট পাঠানো (৩ সেকেন্ড গ্যাপ দিয়ে যাতে ব্রাউজার ব্লক না করে)
+                    // এক এক করে ভিডিও ডাউনলোডের রিকোয়েস্ট পাঠানো
                     selectedBoxes.forEach((box, index) => {
                         setTimeout(() => {
-                            let dlUrl = `/api/download?url=${encodeURIComponent(box.value)}&format=${encodeURIComponent(selectedFormat)}&ext=${selectedExt}&title=${encodeURIComponent(box.getAttribute('data-title'))}`;
+                            // API_BASE যুক্ত করে ডাউনলোড URL তৈরি
+                            let dlUrl = `${API_BASE}/api/download?url=${encodeURIComponent(box.value)}&format=${encodeURIComponent(selectedFormat)}&ext=${selectedExt}&title=${encodeURIComponent(box.getAttribute('data-title'))}`;
                             
                             // নতুন ট্যাবে/আইফ্রেমে পুশ করা
                             const a = document.createElement('a');
@@ -158,13 +199,12 @@ document.getElementById('downloadForm').addEventListener('submit', async (e) => 
                 const endTimeDisplay = document.getElementById('endTimeDisplay');
                 const clipDurationDisplay = document.getElementById('clipDurationDisplay');
 
-                // ভিডিওর ডুরেশন স্ট্রিং (যেমন: "3:45" বা "1:05:20") কে মোট সেকেন্ডে রূপান্তর করা
                 const parseDurationToSeconds = (durStr) => {
                     if (!durStr) return 0;
                     const parts = durStr.split(':').map(Number);
                     if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
                     if (parts.length === 2) return parts[0] * 60 + parts[1];
-                    return parts[0] || 60; // ডিফল্ট ৬০ সেকেন্ড যদি না মিলে
+                    return parts[0] || 60;
                 };
 
                 const totalSeconds = parseDurationToSeconds(data.duration);
@@ -177,7 +217,6 @@ document.getElementById('downloadForm').addEventListener('submit', async (e) => 
                 rangeEnd.max = totalSeconds;
                 rangeEnd.value = totalSeconds;
 
-                // সেকেন্ডকে প্রিটি টাইম ফরম্যাটে (HH:MM:SS) দেখানোর ফাংশন
                 const formatTime = (sec) => {
                     const h = Math.floor(sec / 3600);
                     const m = Math.floor((sec % 3600) / 60);
@@ -185,7 +224,6 @@ document.getElementById('downloadForm').addEventListener('submit', async (e) => 
                     return `${h > 0 ? h + ':' : ''}${m < 10 ? '0' + m : m}:${s < 10 ? '0' + s : s}`;
                 };
 
-                // স্লাইডার টগল করা
                 enableTrimCheckbox.onchange = () => {
                     if (enableTrimCheckbox.checked) {
                         trimControls.style.opacity = '1';
@@ -196,7 +234,6 @@ document.getElementById('downloadForm').addEventListener('submit', async (e) => 
                     }
                 };
 
-                // স্লাইডার টানলে লাইভ টাইম আপডেট হওয়া
                 const updateSliderUI = () => {
                     let startVal = parseInt(rangeStart.value);
                     let endVal = parseInt(rangeEnd.value);
@@ -216,7 +253,6 @@ document.getElementById('downloadForm').addEventListener('submit', async (e) => 
                 rangeStart.oninput = updateSliderUI;
                 rangeEnd.oninput = updateSliderUI;
                 updateSliderUI();
-                // --- ট্রিমার ইনিশিয়ালাইজেশন শেষ ---
 
                 // HD থাম্বনেইল ডাউনলোড বাটন লজিক
                 document.getElementById('downloadThumbBtn').onclick = () => {
@@ -232,13 +268,11 @@ document.getElementById('downloadForm').addEventListener('submit', async (e) => 
                     }
                 });
 
-                // অ্যাডভান্সড অডিও অপশন (Audiophile Mode)
                 selectHTML += `
                     <option value="bestaudio" data-ext="mp3" data-name="MP3 (320kbps)">🎵 MP3 - Premium (320kbps)</option>
                     <option value="bestaudio" data-ext="m4a" data-name="M4A (128kbps)">🎵 M4A - Standard (128kbps)</option>
                     <option value="bestaudio" data-ext="wav" data-name="WAV (Lossless)">🎼 WAV - Lossless (Studio)</option>
-                `;
-                selectHTML += `</select>`;
+                </select>`;
                 
                 const downloadBtn = document.createElement('button');
                 downloadBtn.style.width = '100%';
@@ -249,7 +283,7 @@ document.getElementById('downloadForm').addEventListener('submit', async (e) => 
                 optionsContainer.appendChild(downloadBtn);
                 
                 // ==========================================
-                // --- ডাউনলোড ক্লিক ইভেন্ট (নতুন আপডেটেড লজিক) ---
+                // --- ডাউনলোড ক্লিক ইভেন্ট ---
                 // ==========================================
                 downloadBtn.onclick = () => {
                     const selectBox = document.getElementById('formatSelect');
@@ -285,17 +319,29 @@ document.getElementById('downloadForm').addEventListener('submit', async (e) => 
                     progressText.innerText = 'সার্ভারে কানেক্ট করা হচ্ছে...';
                     
                     const clientId = Date.now();
-                    const eventSource = new EventSource(`/api/progress?id=${clientId}`);
+                    // API_BASE যুক্ত করা হয়েছে
+                    const eventSource = new EventSource(`${API_BASE}/api/progress?id=${clientId}`);
                     
                     eventSource.onmessage = (event) => {
                         const progressData = event.data;
                         
                         if (progressData === 'DONE') {
-                            // চেক করা হচ্ছে ফাইল কোথায় সেভ হলো
                             if (saveToDrive) {
                                 progressText.innerText = '✅ ম্যাজিক! ফাইলটি সফলভাবে আপনার Google Drive-এ সেভ হয়েছে!';
                             } else {
                                 progressText.innerText = '✅ প্রসেসিং শেষ! আপনার পিসিতে সেভ হচ্ছে...';
+                            }
+                            
+                            // 🔔 ব্যাকগ্রাউন্ড নোটিফিকেশন সিস্টেম
+                            if ("Notification" in window && Notification.permission === "granted") {
+                                const notifMsg = saveToDrive ? 
+                                    "আপনার ফাইলটি Google Drive-এ সেভ হয়েছে!" : 
+                                    "ভিডিও ডাউনলোড সফলভাবে শেষ হয়েছে!";
+                                    
+                                new Notification("Aharoni Z", {
+                                    body: notifMsg,
+                                    icon: "/icons/z icon.png"
+                                });
                             }
                             
                             progressBar.style.width = '100%';
@@ -308,8 +354,8 @@ document.getElementById('downloadForm').addEventListener('submit', async (e) => 
                                 downloadBtn.disabled = false;
                             }, 5000);
                         } else if (progressData.includes('☁️')) {
-                            progressText.innerText = progressData; // ক্লাউড আপলোডের মেসেজ দেখাবে
-                            progressBar.style.width = '99%'; // আপলোডের সময় ৯৯% এ আটকে থাকবে
+                            progressText.innerText = progressData; 
+                            progressBar.style.width = '99%'; 
                         } else {
                             progressBar.style.width = `${progressData}%`;
                             progressText.innerText = `সার্ভারে প্রসেস হচ্ছে: ${progressData}%`;
@@ -321,8 +367,8 @@ document.getElementById('downloadForm').addEventListener('submit', async (e) => 
                         eventSource.close();
                     };
 
-                    // ডাউনলোড URL তৈরি (সব ডেটা একসাথে)
-                    let downloadUrl = `/api/download?url=${encodeURIComponent(url)}&format=${encodeURIComponent(selectedFormat)}&ext=${selectedExt}&title=${encodeURIComponent(data.title)}&clientId=${clientId}`;
+                    // API_BASE যুক্ত করে ডাউনলোড URL তৈরি
+                    let downloadUrl = `${API_BASE}/api/download?url=${encodeURIComponent(url)}&format=${encodeURIComponent(selectedFormat)}&ext=${selectedExt}&title=${encodeURIComponent(data.title)}&clientId=${clientId}`;
                     
                     // ট্রিম চেক
                     const isTrimEnabled = document.getElementById('enableTrim') && document.getElementById('enableTrim').checked;

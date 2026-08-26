@@ -1,0 +1,26 @@
+.aharoni-z-video-btn {
+    position: absolute !important;
+    top: 15px !important;
+    right: 15px !important;
+    z-index: 9999999 !important;
+    background: rgba(0, 0, 0, 0.5) !important; /* হালকা কালো ব্যাকগ্রাউন্ড */
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    padding: 5px 8px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.3s ease !important;
+}
+
+.aharoni-z-video-btn:hover {
+    background: rgba(0, 0, 0, 0.9) !important;
+    transform: scale(1.1) !important;
+}
+
+.aharoni-z-video-btn img {
+    width: 35px !important; /* লোগোর সাইজ */
+    height: auto !important;
+    display: block !important;
+}

@@ -2,157 +2,119 @@
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aharoni Z | Advanced Media Downloader</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#f4f7f6">
+    
+    <!-- SEO Meta Tags -->
+    <title>Aharoni Z (আহরণী Z) - Premium Media Downloader by MD. Shakawat Hossain Faravi</title>
+    <meta name="description" content="Aharoni Z (আহরণী Z) is a premium, fast, and secure media downloader. Crafted and developed by MD. Shakawat Hossain Faravi (Al Faravi). Download videos directly to Google Drive.">
+    <meta name="keywords" content="Aharoni Z, আহরনী z, আহরণী Z, MD. Shakawat Hossain Faravi, Shakawat, Hossain, Faravi, Al Faravi, Video Downloader, YouTube Downloader, Premium Downloader">
+    <meta name="author" content="MD. Shakawat Hossain Faravi">
+    
     <!-- Z Icon for Favicon -->
     <link rel="icon" type="image/png" href="/icons/z%20icon.png">
     <link rel="manifest" href="/manifest.json">
-    <style>
-        :root {
-            --bg-color: #f7f5f0; /* Creamy White / Soft Off-white */
-            --card-bg: #ffffff;  /* Pure White */
-            --primary: #ff3366;
-            --primary-hover: #e62050;
-            --text-main: #2d3436; /* Dark Text */
-            --text-muted: #636e72; /* Gray Text */
-            --border-light: rgba(0, 0, 0, 0.08);
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; }
-        
-        /* Logo Styling */
-        .brand-logo { max-width: 250px; height: auto; margin-bottom: 2rem; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.05)); }
-        
-        /* Main Container */
-        .container { background: var(--card-bg); width: 100%; max-width: 600px; padding: 2rem; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.06); border: 1px solid var(--border-light); }
-        
-        /* Input & Buttons */
-        .input-group { display: flex; gap: 10px; margin-bottom: 1.5rem; }
-        input[type="url"], input[type="text"] { flex: 1; padding: 14px 20px; border-radius: 8px; border: 1px solid var(--border-light); background: #fdfdfd; color: var(--text-main); font-size: 1rem; outline: none; transition: 0.3s; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
-        input[type="url"]:focus, input[type="text"]:focus { border-color: var(--primary); background: #ffffff; box-shadow: 0 0 0 3px rgba(255, 51, 102, 0.1); }
-        button { padding: 14px 24px; border: none; border-radius: 8px; background: var(--primary); color: white; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 10px rgba(255, 51, 102, 0.2); }
-        button:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 6px 15px rgba(255, 51, 102, 0.3); }
-        button:disabled { background: #b2bec3; cursor: not-allowed; transform: none; box-shadow: none; color: #fff; }
-        
-        /* Results Section */
-        .hidden { display: none !important; }
-        .result-card { background: #f8f9fa; border: 1px solid var(--border-light); border-radius: 12px; padding: 15px; margin-top: 20px; text-align: center; }
-        .thumbnail-container { position: relative; margin-bottom: 15px; }
-        .thumbnail-container img { width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        
-        /* Thumbnail Download Button overlay */
-        .thumb-dl-btn { position: absolute; bottom: 10px; right: 10px; background: rgba(255,255,255,0.9); color: var(--primary); padding: 8px 12px; font-size: 0.85rem; font-weight: 600; border-radius: 6px; cursor: pointer; border: 1px solid var(--border-light); backdrop-filter: blur(4px); transition: 0.3s; }
-        .thumb-dl-btn:hover { background: var(--primary); color: white; }
-        
-        select { width: 100%; padding: 14px; margin: 15px 0; border-radius: 8px; background: #ffffff; color: var(--text-main); border: 1px solid var(--border-light); outline: none; font-size: 1rem; cursor: pointer; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
-        select:focus { border-color: var(--primary); }
-        
-        /* Progress Bar */
-        .progress-container { width: 100%; height: 8px; background: #dfe6e9; border-radius: 4px; margin-top: 15px; overflow: hidden; }
-        .progress-bar { height: 100%; width: 0%; background: var(--primary); transition: width 0.3s ease; }
-        .progress-text { font-size: 0.85rem; color: var(--text-muted); margin-top: 5px; text-align: center; }
-
-        /* History Section */
-        .history-section { width: 100%; max-width: 600px; margin-top: 2rem; background: var(--card-bg); padding: 1.5rem; border-radius: 16px; border: 1px solid var(--border-light); box-shadow: 0 10px 40px rgba(0,0,0,0.04); }
-        .history-section h3 { margin-bottom: 15px; font-size: 1.1rem; color: var(--text-main); border-bottom: 1px solid var(--border-light); padding-bottom: 10px; }
-        .history-list { list-style: none; }
-        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 10px; border-bottom: 1px solid var(--border-light); font-size: 0.9rem; transition: 0.2s; }
-        .history-item:hover { background: #f8f9fa; border-radius: 6px; }
-        .history-item a { color: var(--primary); text-decoration: none; cursor: pointer; }
-        .badge { background: #ffeaa7; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; color: #d63031; font-weight: bold; border: 1px solid rgba(0,0,0,0.05); }
-    </style>
+    
+    <!-- Google Fonts & External CSS -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
-    <!-- Aharoni Z Main Logo -->
-    <img src="/icons/ahoroni%20z%20logo.png" alt="Aharoni Z Logo" class="brand-logo">
-
     <div class="container">
-        <form id="downloadForm">
-            <div class="input-group">
-                <input type="url" id="urlInput" placeholder="ভিডিও বা প্লেলিস্টের লিংক পেস্ট করুন..." required>
-                <button type="submit" id="fetchBtn">তথ্য খুঁজুন</button>
+        
+        <!-- Smart Header -->
+        <header class="app-header">
+            <div class="logo-container">
+                <img src="/icons/ahoroni%20z%20logo.png" alt="Aharoni Z Logo" class="brand-logo">
+                <div class="version-badge">PRO</div>
             </div>
-            
-            <!-- Settings Toggles -->
-            <div style="display: flex; gap: 15px; margin-bottom: 10px;">
-                <label style="font-size: 0.85rem; color: var(--text-main); font-weight: 600; cursor: pointer;">
-                    <input type="checkbox" id="isPlaylistMode"> 📑 প্লেলিস্ট মোড
-                </label>
-                <label style="font-size: 0.85rem; color: var(--primary); font-weight: 600; cursor: pointer;">
-                    <input type="checkbox" id="showAdvanced"> ⚙️ অ্যাডভান্সড সেটিংস
-                </label>
+            <div class="tagline-container">
+                <span class="pulse-indicator"></span>
+                <span class="tagline-text">Premium Media Downloader</span>
             </div>
+        </header>
 
-            <!-- Advanced Settings Panel (Hidden by default) -->
-            <div id="advancedSettings" class="hidden" style="background: #fdfdfd; padding: 15px; border-radius: 8px; border: 1px solid var(--border-light); text-align: left; margin-bottom: 15px;">
+        <!-- Main Form Card -->
+        <div class="card">
+            <form id="downloadForm">
+                <div class="input-group">
+                    <input type="url" id="urlInput" placeholder="ভিডিও বা প্লেলিস্টের লিংক পেস্ট করুন..." required>
+                    <button type="submit" id="fetchBtn">তথ্য খুঁজুন</button>
+                </div>
                 
-                <!-- 1. Secure Cookie Manager -->
-                <div style="margin-bottom: 15px;">
-                    <label style="font-size: 0.85rem; font-weight: bold; color: var(--text-main);">🔐 প্রাইভেট ভিডিও কুকি (Netscape format):</label>
-                    <textarea id="cookieInput" rows="3" placeholder="প্রাইভেট ভিডিও নামাতে আপনার ব্রাউজারের কুকিজ এখানে পেস্ট করুন..." style="width: 100%; padding: 10px; margin-top: 5px; border-radius: 6px; border: 1px solid var(--border-light); font-size: 0.8rem;"></textarea>
-                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;">* কুকি ফাইল সার্ভারে সেভ হবে না, ডাউনলোড শেষে অটোমেটিক মুছে যাবে।</p>
+                <!-- Settings Toggles -->
+                <div style="display: flex; gap: 15px; margin-bottom: 10px; flex-wrap: wrap;">
+                    <label>
+                        <input type="checkbox" id="isPlaylistMode"> 📑 প্লেলিস্ট মোড
+                    </label>
+                    <label style="color: var(--primary); font-weight: 600;">
+                        <input type="checkbox" id="showAdvanced"> ⚙️ অ্যাডভান্সড সেটিংস
+                    </label>
                 </div>
 
-                <!-- 2. Cloud Pipe (Google Drive) -->
-                <div style="border-top: 1px solid var(--border-light); padding-top: 10px;">
-                    <label style="font-size: 0.85rem; font-weight: bold; color: var(--text-main);">☁️ ক্লাউড সেভ (Cloud Pipe):</label>
-                    <div style="margin-top: 5px;">
-                        <label style="font-size: 0.85rem; cursor: pointer;">
-                            <input type="checkbox" id="saveToDrive"> 📥 পিসিতে নয়, সরাসরি Google Drive-এ সেভ করুন
+                <!-- Advanced Settings Panel -->
+                <div id="advancedSettings" class="hidden" style="background: #fdfdfd; padding: 15px; border-radius: 12px; border: 1px solid var(--border-light); margin-top: 10px;">
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight: 600;">🔐 প্রাইভেট ভিডিও কুকি (Netscape):</label>
+                        <textarea id="cookieInput" rows="3" placeholder="প্রাইভেট ভিডিও নামাতে ব্রাউজারের কুকিজ এখানে পেস্ট করুন..."></textarea>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 5px;">* ডাউনলোড শেষে অটোমেটিক মুছে যাবে।</p>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--border-light); padding-top: 15px;">
+                        <label style="font-weight: 600;">☁️ ক্লাউড সেভ (Cloud Pipe):</label>
+                        <label style="margin-top: 8px;">
+                            <input type="checkbox" id="saveToDrive"> 📥 সরাসরি Google Drive-এ সেভ করুন
                         </label>
                         
-                        <!-- Google Drive Auth Section -->
-                        <div id="driveAuthSection" style="margin-top: 10px;">
-                            <a href="/auth/google" id="googleLoginBtn" style="display: inline-block; background: #4285F4; color: white; padding: 8px 15px; text-decoration: none; border-radius: 5px; font-size: 0.85rem; font-weight: bold; border: 1px solid #357ae8;">🔗 Sign in with Google to enable Drive</a>
-                            <p id="driveConnectedMsg" class="hidden" style="color: #00b894; font-weight: bold; font-size: 0.85rem; margin-top: 5px;">✅ Google Drive কানেক্টেড! ফাইল সরাসরি ড্রাইভে যাবে।</p>
+                        <div id="driveAuthSection" style="margin-top: 12px;">
+                            <a href="/auth/google" id="googleLoginBtn" style="display: inline-block; background: #4285F4; color: white; padding: 10px 15px; text-decoration: none; border-radius: 8px; font-size: 0.85rem; font-weight: bold; box-shadow: 0 2px 6px rgba(66,133,244,0.3);">🔗 Sign in with Google to enable Drive</a>
+                            <p id="driveConnectedMsg" class="hidden" style="color: var(--success); font-weight: bold; font-size: 0.85rem; margin-top: 8px;">✅ Google Drive কানেক্টেড!</p>
                         </div>
-
                     </div>
                 </div>
-            </div>
-        </form>
+            </form>
+        </div>
 
-        <div id="loader" class="hidden" style="text-align: center; color: var(--primary); margin: 20px 0; font-weight: 500;">
+        <!-- Loader -->
+        <div id="loader" class="hidden text-center loader-text">
             ⏳ সার্ভার থেকে তথ্য সংগ্রহ করা হচ্ছে...
         </div>
 
-        <div id="resultContainer" class="hidden result-card">
+        <!-- Single Video Result Card -->
+        <div id="resultContainer" class="hidden card">
             <div class="thumbnail-container">
                 <img id="vidThumb" src="" alt="Thumbnail">
-                <button id="downloadThumbBtn" class="thumb-dl-btn">📸 Download HD Cover</button>
+                <button id="downloadThumbBtn" class="thumb-dl-btn">📸 Download HD</button>
             </div>
             
-            <h3 id="vidTitle" style="font-size: 1.2rem; margin-bottom: 8px; text-align: left; color: var(--text-main);"></h3>
-            <p id="vidDuration" style="color: var(--text-muted); font-size: 0.9rem; text-align: left; font-weight: 500;"></p>
+            <h3 id="vidTitle" style="font-size: 1.1rem; margin-bottom: 8px; color: var(--text-main); line-height: 1.4;"></h3>
+            <p id="vidDuration" style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;"></p>
             
             <div id="downloadOptions">
                 <!-- Dropdown will be injected here -->
             </div>
 
-            <!-- Interactive Video Trimming Section (Dual Slider) -->
-            <div id="trimSection" class="hidden" style="background: #fdfdfd; padding: 15px; border-radius: 12px; margin: 15px 0; text-align: left; border: 1px solid var(--border-light); box-shadow: 0 2px 8px rgba(0,0,0,0.02);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <label style="font-size: 0.9rem; font-weight: 600; color: var(--text-main);">
-                        ✂️ ভিডিও ক্রপ / ট্রিম করুন:
-                    </label>
-                    <label style="font-size: 0.8rem; color: var(--primary); font-weight: 600; cursor: pointer;">
-                        <input type="checkbox" id="enableTrim" style="cursor: pointer;"> ট্রিম মোড অন করুন
+            <!-- Trimming Section -->
+            <div id="trimSection" class="hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+                    <label style="font-weight: 600;">✂️ ভিডিও ট্রিম করুন:</label>
+                    <label style="color: var(--primary); font-weight: 600;">
+                        <input type="checkbox" id="enableTrim"> ট্রিম মোড অন
                     </label>
                 </div>
 
                 <div id="trimControls" style="opacity: 0.4; pointer-events: none; transition: 0.3s;">
-                    <div style="position: relative; margin: 20px 0 10px 0;">
-                        <!-- Custom Dual Range Slider (HTML Range) -->
+                    <div style="position: relative; margin: 20px 0 15px 0;">
                         <div style="display: flex; gap: 10px; align-items: center;">
-                            <input type="range" id="rangeStart" min="0" max="100" value="0" step="1" style="flex: 1; accent-color: var(--primary); cursor: pointer;">
-                            <input type="range" id="rangeEnd" min="0" max="100" value="100" step="1" style="flex: 1; accent-color: var(--primary); cursor: pointer;">
+                            <input type="range" id="rangeStart" min="0" max="100" value="0" step="1" style="flex: 1;">
+                            <input type="range" id="rangeEnd" min="0" max="100" value="100" step="1" style="flex: 1;">
                         </div>
                     </div>
-                    
                     <div style="display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">
                         <span id="startTimeDisplay">শুরু: 00:00:00</span>
-                        <span id="clipDurationDisplay" style="color: var(--primary); font-weight: bold;">দৈর্ঘ্য: পুরো ভিডিও</span>
+                        <span id="clipDurationDisplay" style="color: var(--primary); font-weight: bold;">পুরো ভিডিও</span>
                         <span id="endTimeDisplay">শেষ: 00:00:00</span>
                     </div>
                 </div>
@@ -167,37 +129,46 @@
             </div>
         </div>
 
-        <!-- প্লেলিস্ট রেজাল্ট সেকশন -->
-        <div id="playlistContainer" class="hidden result-card" style="text-align: left;">
+        <!-- Playlist Result Card -->
+        <div id="playlistContainer" class="hidden card">
             <h3 id="playlistTitle" style="color: var(--primary); margin-bottom: 5px;"></h3>
             <p id="playlistCount" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 15px;"></p>
             
-            <div style="max-height: 300px; overflow-y: auto; background: #fff; border: 1px solid var(--border-light); border-radius: 8px; padding: 10px; margin-bottom: 15px;">
-                <ul id="playlistItems" style="list-style: none; font-size: 0.9rem;">
+            <div style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-light); border-radius: 12px; padding: 10px; margin-bottom: 15px; background: #fdfdfd;">
+                <ul id="playlistItems" class="history-list">
                     <!-- ভিডিওর লিস্ট এখানে আসবে -->
                 </ul>
             </div>
             
-            <!-- কোয়ালিটি সিলেক্ট (প্লেলিস্টের সবার জন্য) -->
-            <select id="playlistFormatSelect" style="margin-bottom: 15px;">
+            <select id="playlistFormatSelect">
                 <option value="bestvideo[height<=1080]+bestaudio/best" data-ext="mp4">🎬 1080p / Best MP4</option>
                 <option value="bestvideo[height<=720]+bestaudio/best" data-ext="mp4">🎬 720p MP4</option>
                 <option value="bestaudio" data-ext="mp3">🎵 Best MP3 Audio</option>
             </select>
 
-            <button id="downloadPlaylistBtn" style="width: 100%;">⬇ নির্বাচিত ভিডিওগুলো ডাউনলোড করুন</button>
+            <button id="downloadPlaylistBtn" style="margin-top: 15px;">⬇ নির্বাচিত ভিডিওগুলো ডাউনলোড করুন</button>
         </div>
+
+        <!-- History Card -->
+        <div class="card history-section" id="historySection">
+            <h3>🕒 সাম্প্রতিক ডাউনলোড সমূহ</h3>
+            <ul id="historyList" class="history-list">
+                <!-- History items will be injected here -->
+            </ul>
+        </div>
+
+        <!-- Smart Footer -->
+        <footer class="app-footer">
+            <div class="developer-badge">
+                <span>Crafted with ❤️ by</span>
+                <img src="/icons/alfaravi%20logo.png" alt="MD. Shakawat Hossain Faravi - Al Faravi Logo">
+            </div>
+            <p class="copyright-text">&copy; 2026 Aharoni Z (আহরণী Z). Developed by MD. Shakawat Hossain Faravi.</p>
+        </footer>
+
     </div>
 
-    <!-- Zero-Storage History Panel -->
-    <div class="history-section" id="historySection">
-        <h3>🕒 সাম্প্রতিক ডাউনলোড সমূহ</h3>
-        <ul id="historyList" class="history-list">
-            <!-- History items will be injected here -->
-        </ul>
-    </div>
-
-    <!-- UI Toggle Script for Advanced Settings -->
+    <!-- UI Toggle Script -->
     <script>
         document.getElementById('showAdvanced').addEventListener('change', function() {
             const advancedPanel = document.getElementById('advancedSettings');
