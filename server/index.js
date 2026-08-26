@@ -28,12 +28,18 @@ const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_U
 // ==========================================
 // Middleware
 // ==========================================
+// ==========================================
+// Middleware & CORS Fix
+// ==========================================
 app.use(cors({
-    origin: ['https://aharoni-z.vercel.app', 'http://localhost:5000', 'http://localhost:3000'],
-    methods: ['GET', 'POST', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    origin: '*', // আপাতত সব অরিজিন পারমিট করে চেক করার জন্য
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
     credentials: true
 }));
+
+// এক্সপ্লিসিটলি OPTIONS প্রিফ্লাইট হ্যান্ডেল করার জন্য
+app.options('*', cors());
 
 // Serve Static Files (Frontend PWA)
 const publicPath = path.join(__dirname, '../public');
