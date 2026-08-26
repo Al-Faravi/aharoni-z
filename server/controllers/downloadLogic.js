@@ -1,6 +1,7 @@
 const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+const { google } = require('googleapis'); // ☁️ Google API
 
 const tempDir = path.join(__dirname, '../../temp');
 if (!fs.existsSync(tempDir)) {
@@ -72,12 +73,6 @@ const getVideoInfo = async (req, res) => {
     ytDlp.stderr.on('data', (data) => { errorOutput += data.toString(); });
 
     ytDlp.on('close', (code) => {
-        // প্রসেস শেষে ইনফো ফেচের কুকি ফাইলটি মুছে ফেলা (নিরাপত্তার জন্য)
-        if (cookiePath && fs.existsSync(cookiePath)) {
-            // ইউজার ডাউনলোড করতে চাইলে কুকিটি ডাউনলোডের জন্য রেখে দেওয়া ভালো।
-            // তাই এখানে ডিলিট না করে, আমরা cookieId টা ফ্রন্টএন্ডে পাঠিয়ে দিচ্ছি।
-        }
-
         if (code !== 0) {
             console.log("❌ [Info Fetch Error]:", errorOutput);
             return res.status(500).json({ error: 'ভিডিওর তথ্য পাওয়া যায়নি। প্রাইভেট ভিডিও হলে সঠিক কুকি দিন।' });
@@ -116,7 +111,7 @@ const getVideoInfo = async (req, res) => {
                 thumbnail: info.thumbnail, 
                 duration: info.duration_string || 'Unknown', 
                 formats: formats,
-                cookieId: cookieId // নতুন: ফ্রন্টএন্ডে ID পাঠানো হলো
+                cookieId: cookieId // ফ্রন্টএন্ডে cookieId পাঠানো হলো
             });
         } catch (e) {
             res.status(500).json({ error: 'ডেটা পার্স করতে সমস্যা হয়েছে।' });
@@ -142,8 +137,8 @@ const progressStream = (req, res) => {
 const streamMedia = (req, res) => {
     req.setTimeout(0); 
 
-    // start, end টাইম এবং cookieId রিসিভ করা হলো
-    const { url, format, ext, title, clientId, startTime, endTime, cookieId } = req.query;
+    // প্যারামিটারসমূহ গ্রহণ করা হলো
+    const { url, format, ext, title, clientId, startTime, endTime, cookieId, driveToken, saveToDrive, isDriveSave } = req.query;
     if (!url || !format) return res.status(400).send('URL এবং Format ID প্রয়োজন!');
 
     const safeUrl = cleanUrl(url);
@@ -153,7 +148,7 @@ const streamMedia = (req, res) => {
 
     let ytDlpArgs = ['--newline', '--no-playlist'];
 
-    // নতুন: কুকি ফাইল ব্যবহার
+    // কুকি ফাইল ব্যবহার
     let cookiePath = null;
     if (cookieId) {
         cookiePath = path.join(tempDir, `${cookieId}.txt`);
@@ -163,7 +158,7 @@ const streamMedia = (req, res) => {
         }
     }
 
-    // ফ্রন্টএন্ড থেকে যদি সেকেন্ডে (যেমন: 45, 120) সময় আসে তবে তা ফরম্যাট করা
+    // ট্রিম করার লজিক চেক
     if (startTime !== undefined && endTime !== undefined && startTime !== '' && endTime !== '') {
         const startHMS = secondsToHMS(parseInt(startTime));
         const endHMS = secondsToHMS(parseInt(endTime));
@@ -198,12 +193,9 @@ const streamMedia = (req, res) => {
         }
     });
 
-    ytDlp.on('close', (code) => {
-        if (clientId && progressClients[clientId]) {
-            progressClients[clientId].write(`data: DONE\n\n`);
-        }
-
-        // নতুন: ডাউনলোড শেষে কুকি ফাইল মুছে ফেলা (স্টোরেজ বাঁচানো ও সিকিউরিটি)
+    // 🔴 ytDlp ক্লোজ ইভেন্ট আপডেট করা হলো
+    ytDlp.on('close', async (code) => {
+        // ডাউনলোড শেষে অস্থায়ী কুকি ফাইল মুছে ফেলা
         if (cookiePath && fs.existsSync(cookiePath)) {
             try {
                 fs.unlinkSync(cookiePath);
@@ -213,19 +205,108 @@ const streamMedia = (req, res) => {
             }
         }
 
+        const isCloudSave = saveToDrive === 'true' || isDriveSave === 'true'; // ড্রাইভে সেভ করার ফ্ল্যাগ
+        const userToken = driveToken || req.query.driveToken;
+
         if (code === 0 && fs.existsSync(filePath)) {
-            console.log(`✅ প্রসেসিং সফল! ব্রাউজারে ফাইল পাঠানো হচ্ছে...`);
+            console.log(`✅ প্রসেসিং সফল!`);
+
             const finalName = (startTime !== undefined && endTime !== undefined && startTime !== '' && endTime !== '') 
                               ? `${safeTitle}_trimmed.${ext}` 
                               : `${safeTitle}.${ext}`;
-            
-            res.download(filePath, finalName, (err) => {
-                if (fs.existsSync(filePath)) {
-                    fs.unlinkSync(filePath);
+
+            if (isCloudSave && userToken) {
+                // ☁️ ইউজারের গুগল ড্রাইভে আপলোড
+                console.log(`☁️ ইউজারের ড্রাইভে ফাইল আপলোড হচ্ছে...`);
+                if (clientId && progressClients[clientId]) {
+                    progressClients[clientId].write(`data: ☁️ ফাইল গুগল ড্রাইভে আপলোড হচ্ছে, অপেক্ষা করুন...\n\n`);
                 }
-            });
+
+                // ==========================================
+                // 🪄 ম্যাজিক ট্রাই-ক্যাচ ব্লক (নতুন আপডেটেড)
+                // ==========================================
+                try {
+                    const oauth2Client = new google.auth.OAuth2();
+                    oauth2Client.setCredentials({ access_token: userToken });
+                    
+                    const drive = google.drive({ version: 'v3', auth: oauth2Client });
+                    
+                    const folderName = 'Aharoni Z';
+                    let folderId = null;
+
+                    // ১. ফোল্ডার খোঁজা (Aharoni Z নামে ফোল্ডার আছে কি না)
+                    const resFolder = await drive.files.list({
+                        q: `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and trashed=false`,
+                        fields: 'files(id, name)',
+                        spaces: 'drive'
+                    });
+
+                    if (resFolder.data.files.length > 0) {
+                        // ফোল্ডার পাওয়া গেছে
+                        folderId = resFolder.data.files[0].id;
+                        console.log(`📂 '${folderName}' ফোল্ডার পাওয়া গেছে (ID: ${folderId})`);
+                    } else {
+                        // ২. ফোল্ডার না পেলে নতুন তৈরি করা
+                        console.log(`📁 '${folderName}' ফোল্ডার নেই, নতুন তৈরি করা হচ্ছে...`);
+                        const folderMetadata = {
+                            name: folderName,
+                            mimeType: 'application/vnd.google-apps.folder'
+                        };
+                        const folder = await drive.files.create({
+                            resource: folderMetadata,
+                            fields: 'id'
+                        });
+                        folderId = folder.data.id;
+                    }
+                    
+                    // ৩. নির্দিষ্ট ফোল্ডারের ভেতর ফাইল আপলোড করা
+                    const fileMetadata = { 
+                        name: finalName, // finalName ব্যবহার করা হলো যাতে ট্রিম করা ফাইলের নামও ঠিক থাকে
+                        parents: [folderId] // ম্যাজিক! ফাইলটি সরাসরি এই ফোল্ডারে যাবে
+                    };
+                    const media = {
+                        mimeType: 'application/octet-stream',
+                        body: fs.createReadStream(filePath)
+                    };
+                    
+                    await drive.files.create({
+                        resource: fileMetadata,
+                        media: media,
+                        fields: 'id'
+                    });
+
+                    console.log(`✅ ইউজারের '${folderName}' ফোল্ডারে আপলোড সফল!`);
+                    if (clientId && progressClients[clientId]) progressClients[clientId].write(`data: DONE\n\n`);
+                    
+                    // ব্রাউজারকে রেসপন্স পাঠানো
+                    if (!res.headersSent) res.status(200).send('Google Drive-এ আপলোড সফল হয়েছে!');
+                    
+                    // লোকাল পিসি/সার্ভার থেকে ডিলিট
+                    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+
+                } catch (error) {
+                    console.log('❌ ড্রাইভ আপলোড এরর:', error.message);
+                    if (!res.headersSent) res.status(500).send('Google Drive-এ আপলোড ব্যর্থ হয়েছে।');
+                    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+                }
+                // ==========================================
+
+            } else {
+                // 📥 সরাসরি ব্রাউজার ডাউনলোড
+                if (clientId && progressClients[clientId]) {
+                    progressClients[clientId].write(`data: DONE\n\n`);
+                }
+                console.log(`✅ প্রসেসিং সফল! ব্রাউজারে ফাইল পাঠানো হচ্ছে...`);
+                
+                res.download(filePath, finalName, (err) => {
+                    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+                });
+            }
         } else {
             console.log(`❌ প্রসেসিং ব্যর্থ হয়েছে! Exit Code: ${code}`);
+            if (clientId && progressClients[clientId]) {
+                progressClients[clientId].write(`data: DONE\n\n`);
+            }
             if (!res.headersSent) res.status(500).send('সার্ভারে ফাইল প্রসেস করতে সমস্যা হয়েছে।');
         }
     });

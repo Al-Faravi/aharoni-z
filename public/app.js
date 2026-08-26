@@ -1,3 +1,20 @@
+// URL থেকে গুগল ড্রাইভের টোকেন রিসিভ করা (লগইনের পর)
+const urlParams = new URLSearchParams(window.location.search);
+const tokenFromUrl = urlParams.get('token');
+if (tokenFromUrl) {
+    localStorage.setItem('az_drive_token', tokenFromUrl);
+    window.history.replaceState({}, document.title, "/"); // URL ক্লিন করা
+}
+
+// ড্রাইভ কানেক্টেড কিনা চেক করা
+const driveToken = localStorage.getItem('az_drive_token');
+if (driveToken) {
+    const loginBtn = document.getElementById('googleLoginBtn');
+    const msg = document.getElementById('driveConnectedMsg');
+    if(loginBtn) loginBtn.classList.add('hidden');
+    if(msg) msg.classList.remove('hidden');
+}
+
 // অ্যাডভান্সড সেটিংস প্যানেল টগল করা
 document.getElementById('showAdvanced').addEventListener('change', (e) => {
     const panel = document.getElementById('advancedSettings');
@@ -109,7 +126,7 @@ document.getElementById('downloadForm').addEventListener('submit', async (e) => 
                     // এক এক করে ভিডিও ডাউনলোডের রিকোয়েস্ট পাঠানো (৩ সেকেন্ড গ্যাপ দিয়ে যাতে ব্রাউজার ব্লক না করে)
                     selectedBoxes.forEach((box, index) => {
                         setTimeout(() => {
-                            const dlUrl = `/api/download?url=${encodeURIComponent(box.value)}&format=${encodeURIComponent(selectedFormat)}&ext=${selectedExt}&title=${encodeURIComponent(box.getAttribute('data-title'))}`;
+                            let dlUrl = `/api/download?url=${encodeURIComponent(box.value)}&format=${encodeURIComponent(selectedFormat)}&ext=${selectedExt}&title=${encodeURIComponent(box.getAttribute('data-title'))}`;
                             
                             // নতুন ট্যাবে/আইফ্রেমে পুশ করা
                             const a = document.createElement('a');
@@ -231,13 +248,22 @@ document.getElementById('downloadForm').addEventListener('submit', async (e) => 
                 optionsContainer.innerHTML = selectHTML;
                 optionsContainer.appendChild(downloadBtn);
                 
-                // ডাউনলোড ক্লিক ইভেন্ট (Live Progress যুক্ত)
+                // ==========================================
+                // --- ডাউনলোড ক্লিক ইভেন্ট (নতুন আপডেটেড লজিক) ---
+                // ==========================================
                 downloadBtn.onclick = () => {
                     const selectBox = document.getElementById('formatSelect');
                     const selectedFormat = selectBox.value;
                     const selectedExt = selectBox.options[selectBox.selectedIndex].getAttribute('data-ext');
                     const selectedName = selectBox.options[selectBox.selectedIndex].getAttribute('data-name');
                     
+                    const saveToDrive = document.getElementById('saveToDrive')?.checked;
+                    const driveToken = localStorage.getItem('az_drive_token');
+
+                    if (saveToDrive && !driveToken) {
+                        return alert("প্রথমে 'Sign in with Google' এ ক্লিক করে আপনার ড্রাইভ কানেক্ট করুন!");
+                    }
+
                     // হিস্ট্রিতে সেভ করা
                     let history = JSON.parse(localStorage.getItem('az_history')) || [];
                     history.unshift({ title: data.title, url: url, format: selectedName });
@@ -258,29 +284,33 @@ document.getElementById('downloadForm').addEventListener('submit', async (e) => 
                     progressBar.style.width = '0%';
                     progressText.innerText = 'সার্ভারে কানেক্ট করা হচ্ছে...';
                     
-                    // ১. ইউনিক ক্লায়েন্ট আইডি তৈরি
                     const clientId = Date.now();
-                    
-                    // ২. SSE (Server-Sent Events) কানেকশন তৈরি
                     const eventSource = new EventSource(`/api/progress?id=${clientId}`);
                     
                     eventSource.onmessage = (event) => {
                         const progressData = event.data;
                         
                         if (progressData === 'DONE') {
-                            progressText.innerText = '✅ প্রসেসিং শেষ! আপনার ব্রাউজারে সেভ হচ্ছে...';
-                            progressBar.style.width = '100%';
-                            progressBar.style.backgroundColor = '#00b894'; // সাকসেস কালার (Green)
-                            eventSource.close(); // কানেকশন বন্ধ
+                            // চেক করা হচ্ছে ফাইল কোথায় সেভ হলো
+                            if (saveToDrive) {
+                                progressText.innerText = '✅ ম্যাজিক! ফাইলটি সফলভাবে আপনার Google Drive-এ সেভ হয়েছে!';
+                            } else {
+                                progressText.innerText = '✅ প্রসেসিং শেষ! আপনার পিসিতে সেভ হচ্ছে...';
+                            }
                             
-                            // কিছু সেকেন্ড পর বাটন রিসেট
+                            progressBar.style.width = '100%';
+                            progressBar.style.backgroundColor = '#00b894';
+                            eventSource.close();
+                            
                             setTimeout(() => {
                                 downloadBtn.innerHTML = '⬇ আবার ডাউনলোড করুন';
                                 downloadBtn.style.backgroundColor = 'var(--primary)';
                                 downloadBtn.disabled = false;
                             }, 5000);
+                        } else if (progressData.includes('☁️')) {
+                            progressText.innerText = progressData; // ক্লাউড আপলোডের মেসেজ দেখাবে
+                            progressBar.style.width = '99%'; // আপলোডের সময় ৯৯% এ আটকে থাকবে
                         } else {
-                            // পার্সেন্টেজ আপডেট
                             progressBar.style.width = `${progressData}%`;
                             progressText.innerText = `সার্ভারে প্রসেস হচ্ছে: ${progressData}%`;
                         }
@@ -291,9 +321,28 @@ document.getElementById('downloadForm').addEventListener('submit', async (e) => 
                         eventSource.close();
                     };
 
-                    // ৩. ডাউনলোড রিকোয়েস্ট পাঠানো
+                    // ডাউনলোড URL তৈরি (সব ডেটা একসাথে)
+                    let downloadUrl = `/api/download?url=${encodeURIComponent(url)}&format=${encodeURIComponent(selectedFormat)}&ext=${selectedExt}&title=${encodeURIComponent(data.title)}&clientId=${clientId}`;
                     
-                    // হিডেন আইফ্রেম দিয়ে ডাউনলোড কল করা (যাতে পেজ রিলোড না নেয়)
+                    // ট্রিম চেক
+                    const isTrimEnabled = document.getElementById('enableTrim') && document.getElementById('enableTrim').checked;
+                    if (isTrimEnabled) {
+                        const startTimeSec = document.getElementById('rangeStart').value;
+                        const endTimeSec = document.getElementById('rangeEnd').value;
+                        downloadUrl += `&startTime=${startTimeSec}&endTime=${endTimeSec}`;
+                    }
+
+                    // কুকি আইডি থাকলে অ্যাড করা
+                    if (data.cookieId) {
+                        downloadUrl += `&cookieId=${data.cookieId}`;
+                    }
+
+                    // ক্লাউড পাইপ সিগন্যাল
+                    if (saveToDrive) {
+                        downloadUrl += `&saveToDrive=true&driveToken=${encodeURIComponent(driveToken)}`;
+                    }
+
+                    // রিকোয়েস্ট পাঠানো
                     let iframe = document.getElementById('downloadIframe');
                     if (!iframe) {
                         iframe = document.createElement('iframe');
@@ -301,29 +350,6 @@ document.getElementById('downloadForm').addEventListener('submit', async (e) => 
                         iframe.style.display = 'none';
                         document.body.appendChild(iframe);
                     }
-
-                    // ডাউনলোড URL তৈরি
-                    let downloadUrl = `/api/download?url=${encodeURIComponent(url)}&format=${encodeURIComponent(selectedFormat)}&ext=${selectedExt}&title=${encodeURIComponent(data.title)}&clientId=${clientId}`;
-                    
-                    // ট্রিম ডেটা যুক্ত করা
-                    const isTrimEnabled = document.getElementById('enableTrim')?.checked;
-                    if (isTrimEnabled) {
-                        const startTimeSec = document.getElementById('rangeStart').value;
-                        const endTimeSec = document.getElementById('rangeEnd').value;
-                        downloadUrl += `&startTime=${startTimeSec}&endTime=${endTimeSec}`;
-                    }
-
-                    // কুকি আইডি থাকলে অ্যাড করা (আগের ধাপ অনুযায়ী)
-                    if (data.cookieId) {
-                        downloadUrl += `&cookieId=${data.cookieId}`;
-                    }
-
-                    // ড্রাইভ সেভ অপশন যুক্ত করা
-                    const saveToDrive = document.getElementById('saveToDrive')?.checked;
-                    if (saveToDrive) {
-                        downloadUrl += `&saveToDrive=true`;
-                    }
-
                     iframe.src = downloadUrl;
                 };
                 
