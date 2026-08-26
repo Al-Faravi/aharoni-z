@@ -31,15 +31,22 @@ const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_U
 // ==========================================
 // Middleware & CORS Fix
 // ==========================================
-app.use(cors({
-    origin: '*', // আপাতত সব অরিজিন পারমিট করে চেক করার জন্য
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-    credentials: true
-}));
+// ==========================================
+// Custom CORS Middleware (Fail-proof)
+// ==========================================
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    
+    // প্রিফ্লাইট (OPTIONS) রিকোয়েস্টের জন্য সরাসরি 200 OK পাঠিয়ে দেওয়া
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
 
-// এক্সপ্লিসিটলি OPTIONS প্রিফ্লাইট হ্যান্ডেল করার জন্য
-app.options('*', cors());
+app.use(express.json());
 
 // Serve Static Files (Frontend PWA)
 const publicPath = path.join(__dirname, '../public');
