@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://discrimination-exterior-front-generally.trycloudflare.com/api/:path*"
+    },
+    {
+      "source": "/auth/:path*",
+      "destination": "https://discrimination-exterior-front-generally.trycloudflare.com/auth/:path*"
+    }
+  ]
+}

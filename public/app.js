@@ -3,7 +3,7 @@
 // ==========================================
 // Hugging Face-এ ডিপ্লয় করার পর এখানে আপনার Hugging Face এর লিংকটি বসাতে হবে।
 // আপাতত লোকাল টেস্টের জন্য localhost:7860 দেওয়া আছে।
-const API_BASE = "https://discrimination-exterior-front-generally.trycloudflare.com";
+const API_BASE = "";
 
 // Google Login বাটনের লিংক ডাইনামিকভাবে ব্যাকএন্ডের দিকে পয়েন্ট করা
 const googleLoginBtn = document.getElementById('googleLoginBtn');
